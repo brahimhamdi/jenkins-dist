@@ -3,19 +3,19 @@ Vagrant.require_version ">= 2.0.0"
 boxes = [
    {
         :name => "Jenkins-master",
-        :eth1 => "192.168.205.20",
+        :eth1 => "192.168.56.120",
         :mem => "4096",
         :cpu => "2"
     },
     {
         :name => "Jenkins-slave",
-        :eth1 => "192.168.205.21",
+        :eth1 => "192.168.56.121",
         :mem => "2048",
         :cpu => "1"
     },
     {
         :name => "env-prod",
-        :eth1 => "192.168.205.22",
+        :eth1 => "192.168.56.122",
         :mem => "2048",
         :cpu => "1"
     }
