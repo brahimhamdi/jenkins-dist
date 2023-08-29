@@ -1,15 +1,21 @@
 Vagrant.require_version ">= 2.0.0"
 
 boxes = [
+   {
+        :name => "Jenkins-master",
+        :eth1 => "192.168.205.20",
+        :mem => "4096",
+        :cpu => "2"
+    },
     {
         :name => "Jenkins-slave",
-        :eth1 => "192.168.205.20",
+        :eth1 => "192.168.205.21",
         :mem => "2048",
         :cpu => "1"
     },
     {
         :name => "env-prod",
-        :eth1 => "192.168.205.30",
+        :eth1 => "192.168.205.22",
         :mem => "2048",
         :cpu => "1"
     }
@@ -18,6 +24,8 @@ boxes = [
 
 Vagrant.configure(2) do |config|
   config.vm.box = "generic/ubuntu2204"
+
+  config.vbguest.auto_update = false if Vagrant.has_plugin?("vagrant-vbguest")
 
   boxes.each do |opts|
       config.vm.define opts[:name] do |config|
