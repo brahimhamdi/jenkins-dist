@@ -1,0 +1,160 @@
+pipeline {
+    agent {
+            label 'maven'
+        }
+    
+    tools {
+        maven "M3"
+        }
+    stages {
+        stage('GitClone') {
+            steps {
+                script
+                {
+                    //sh 'kill -9 `ps aux |grep petclinic | grep jar | awk {\'print $2\'}`'
+                    git branch: 'main', url: 'https://github.com/brahimhamdi/petclinic'
+                }    
+            }
+        }
+    stage('Build') {
+        steps {
+            script
+            {
+                if (isUnix())
+                {   sh 'rm -rf petclinic_test_plan.jtl'
+                    sh 'mvn -fn clean package checkstyle:checkstyle pmd:pmd'
+                    }
+                else
+                {
+                    bat 'mvn -fn clean package checkstyle:checkstyle pmd:pmd'
+                }
+            }
+        }}
+    stage('QA Check & publish') {
+        steps {
+            script
+            {
+                recordIssues(tools: [checkStyle(), pmdParser()])
+            }
+        }
+        }
+    stage('Rapports de Tests') {
+            steps {
+                script
+                {
+                    if (isUnix())
+                    {
+                        sh 'echo Rapports de tests'
+                    }
+                    else
+                    {
+                        bat 'echo Rapports de tests'
+                    }
+                }
+            }
+            post {
+                success {
+                    junit '**/target/surefire-reports/TEST-*.xml'
+                }
+            }
+        }
+        stage('Archivage artifacts') {
+            steps {
+                script
+                {
+                    if (isUnix())
+                    {
+                        sh 'echo Archivage des artifacts'
+                    }
+                    else
+                    {
+                        bat 'echo Archivage des artifacts'
+                    }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts 'target/*.jar'
+                }
+            }
+        }
+        stage('deploy-petclinic-Test') {
+            steps {
+                        script
+                {
+                    if (isUnix())
+                    {
+                        sh 'scp target/spring-petclinic-3.0.0-SNAPSHOT.jar vagrant@192.168.56.122:/tmp/'
+                        sh 'ssh vagrant@192.168.56.122 java -jar /tmp/spring-petclinic-3.0.0-SNAPSHOT.jar &'
+                        sh 'sleep 20'
+                    }
+                    else
+                    {
+                        bat 'scp target/spring-petclinic-3.0.0-SNAPSHOT.jar vagrant@192.168.56.122:/tmp/'
+                        bat 'ssh vagrant@192.168.56.122 java -jar /tmp/spring-petclinic-3.0.0-SNAPSHOT.jar &'
+                        sh 'sleep 20'
+                    }
+                }
+                }
+        }
+        stage('Test performance - Jmeter') {
+            steps {
+                script
+                {
+                    if (isUnix())
+                    {
+                        sh 'scp petclinic_test_plan.jmx vagrant@192.168.56.122:/tmp/'
+                        sh 'ssh vagrant@192.168.56.122 "/opt/apache-jmeter-5.6.3/bin/jmeter -j jmeter.save.saveservice.output_format=xml -n -t /tmp/petclinic_test_plan.jmx -l /tmp/petclinic_test_plan.jtl"'
+                        sh 'scp vagrant@192.168.56.122:/tmp/petclinic_test_plan.jtl  .'
+                    }
+                    else
+                    {
+                        bat 'scp petclinic_test_plan.jmx vagrant@192.168.56.122:/tmp/'
+                        bat 'ssh vagrant@192.168.56.122 "/opt/apache-jmeter-5.6.3/bin/jmeter -j jmeter.save.saveservice.output_format=xml -n -t /tmp/petclinic_test_plan.jmx -l /tmp/petclinic_test_plan.jtl"'
+                        bat 'scp vagrant@192.168.56.122:/tmp/petclinic_test_plan.jtl  .'
+                    }
+                }
+            }
+            post {
+                success {
+                    perfReport errorFailedThreshold: 5, errorUnstableThreshold: 1, sourceDataFiles: 'petclinic_test_plan.jtl'
+
+                }
+            }
+        }
+        stage('Pub perf Test') {
+            steps {
+                script
+                {
+                    sh 'echo publier rapport de test performance ################################################'
+                 }
+            }
+            post {
+                success {
+                    perfReport errorFailedThreshold: 5, errorUnstableThreshold: 1, sourceDataFiles: 'petclinic_test_plan.jtl'
+
+                }
+            }
+        }
+        stage('deploy-petclinic-Prod') {
+            steps {
+                script  {
+                    timeout(time: 30, unit: "MINUTES") {
+	                    input message: 'Voulez vous lancer le déploiement sur prod ?', ok: 'Yes'
+	                }
+                    if (isUnix())
+                        {
+                        sh 'scp target/spring-petclinic-3.0.0-SNAPSHOT.jar vagrant@192.168.56.123:/tmp/'
+                        sh 'ssh vagrant@192.168.56.123 java -jar /tmp/spring-petclinic-3.0.0-SNAPSHOT.jar &'
+                        }
+                    else
+                        {
+                        bat 'scp target/spring-petclinic-3.0.0-SNAPSHOT.jar vagrant@192.168.56.123:/tmp/'
+                        bat 'ssh vagrant@192.168.56.123 java -jar /tmp/spring-petclinic-3.0.0-SNAPSHOT.jar &'
+                        }
+                }
+                }
+        }
+    }
+}
+
