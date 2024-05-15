@@ -16,8 +16,8 @@ boxes = [
     {
         :name => "env-test",
         :eth1 => "192.168.56.122",
-        :mem => "2048",
-        :cpu => "1"
+        :mem => "4096",
+        :cpu => "2"
     },
     {
         :name => "env-prod",
